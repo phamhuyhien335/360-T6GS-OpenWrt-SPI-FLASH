@@ -46,7 +46,7 @@ jobs:
             13 \
             880 \
             1200 \
-            DDR3-128MiB-KGD \
+            DDR3-256MiB \
             115200
 
       - name: Upload artifact
