@@ -1,0 +1,76 @@
+name: Build 360T6GS Recovery Initramfs (NAND)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android || true
+          docker system prune -af || true
+          df -h
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ack antlr3 asciidoc autoconf automake autopoint binutils bison \
+            build-essential bzip2 ccache cmake cpio curl device-tree-compiler \
+            fastjar flex gawk gettext gcc-multilib g++-multilib git gperf \
+            haveged help2man intltool libc6-dev-i386 libelf-dev libglib2.0-dev \
+            libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses-dev \
+            libncurses5-dev libpython3-dev libreadline-dev libssl-dev libtool \
+            lrzsz msmtp ninja-build p7zip p7zip-full patch pkgconf python3 \
+            python3-pip python3-setuptools qemu-utils rsync scons squashfs-tools \
+            subversion swig texinfo uglifyjs upx-ucl unzip wget xxd zlib1g-dev
+
+      - name: Clone source
+        run: |
+          git clone --depth 1 --branch master https://github.com/immortalwrt/immortalwrt.git source
+
+      - name: Apply recovery DTS patch
+        run: |
+          bash scripts/apply-t6gs-nand-recovery.sh "$(pwd)/source"
+
+      - name: Configure target profile
+        working-directory: source
+        run: |
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          cat > .config <<'EOF'
+          CONFIG_TARGET_ramips=y
+          CONFIG_TARGET_ramips_mt7621=y
+          CONFIG_TARGET_ramips_mt7621_DEVICE_qihoo_360t6gs=y
+          EOF
+          make defconfig
+
+      - name: Download package sources
+        working-directory: source
+        run: make download -j8
+
+      - name: Build firmware
+        working-directory: source
+        run: make -j"$(nproc)" V=s
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p artifacts
+          cp -a source/bin/targets/ramips/mt7621/* artifacts/
+          ls -lah artifacts
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovery-nand
+          path: artifacts
+          if-no-files-found: error
