@@ -1,4 +1,4 @@
-name: Build 360T6GS NOR WRT
+name: Build 360T6GS WRT
 
 on:
   workflow_dispatch:
@@ -14,21 +14,46 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - name: openwrt-main-nand
+            repo: https://github.com/openwrt/openwrt.git
+            ref: main
+            flash: nand
           - name: openwrt-main-nor
             repo: https://github.com/openwrt/openwrt.git
             ref: main
+            flash: nor
+          - name: immortalwrt-main-nand
+            repo: https://github.com/immortalwrt/immortalwrt.git
+            ref: master
+            flash: nand
           - name: immortalwrt-main-nor
             repo: https://github.com/immortalwrt/immortalwrt.git
             ref: master
+            flash: nor
+          - name: lede-main-nand
+            repo: https://github.com/coolsnowwolf/lede.git
+            ref: master
+            flash: nand
           - name: lede-main-nor
             repo: https://github.com/coolsnowwolf/lede.git
             ref: master
+            flash: nor
+          - name: x-wrt-main-nand
+            repo: https://github.com/x-wrt/x-wrt.git
+            ref: master
+            flash: nand
           - name: x-wrt-main-nor
             repo: https://github.com/x-wrt/x-wrt.git
             ref: master
+            flash: nor
+          - name: lienol-main-nand
+            repo: https://github.com/Lienol/openwrt.git
+            ref: 25.12
+            flash: nand
           - name: lienol-main-nor
             repo: https://github.com/Lienol/openwrt.git
             ref: 25.12
+            flash: nor
 
     name: ${{ matrix.name }}
 
@@ -60,9 +85,9 @@ jobs:
         run: |
           git clone --depth 1 --branch "${{ matrix.ref }}" "${{ matrix.repo }}" source
 
-      - name: Apply NOR profile patch
+      - name: Apply ${{ matrix.flash }} profile patch
         run: |
-          bash scripts/apply-t6gs-nor.sh "$(pwd)/source"
+          bash scripts/apply-t6gs-${{ matrix.flash }}.sh "$(pwd)/source"
 
       - name: Configure target profile
         working-directory: source
