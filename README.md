@@ -174,11 +174,47 @@ Access LuCI at `192.168.1.1`.
 
 The NOR variant runs on the 16MB SPI NOR chip with approximately **6.8MB** of free space for packages. LuCI and SQM are included out of the box.
 
-## Breed flash setting
+## Alternative: Using Breed
 
-If using Breed (not the custom U-Boot from this repo):
+Instead of the custom U-Boot from this repo, you can install [Breed](https://breed.hackpascal.net/) (a universal bootloader for MT7621 routers).
 
-- Flash Layout: `public 0x50000`
+### Install Breed
+
+Same TTL process as the U-Boot method above, but in **Step 6**, use Breed instead:
+
+1. Download `breed-mt7621-xxx.bin` from [breed.hackpascal.net](https://breed.hackpascal.net/) (choose a build compatible with your flash size)
+2. Transfer it via HFS (same method as u-boot)
+3. Flash via telnet:
+   ```
+   cd /tmp
+   wget http://192.168.2.x:8080/breed-mt7621-xxx.bin
+   mtd write breed-mt7621-xxx.bin u-boot
+   ```
+
+### Enter Breed
+
+1. Power off the router
+2. **Hold the reset button** and power on
+3. Wait for the green LED to blink, then release reset
+4. Open browser and go to **192.168.1.1**
+5. Breed web interface appears
+
+### Flash firmware via Breed
+
+1. Go to **Firmware Upgrade**
+2. Check **Firmware** and select your NOR `.bin` file
+3. Set Flash Layout to **public 0x50000**
+4. Click **Upload** and wait for the router to reboot
+
+### ⚠️ Breed limitations on 360T6GS
+
+Breed is designed for NAND-based routers and may not handle NOR flash perfectly:
+
+- Partition detection may be incorrect
+- Environment variables might not persist
+- Some Breed builds may not boot NOR firmware reliably
+
+For best results on 360T6GS, the **custom U-Boot from this repo** (configured for NOR flash) is recommended.
 
 ## Credits
 
