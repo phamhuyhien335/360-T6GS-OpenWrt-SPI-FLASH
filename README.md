@@ -67,9 +67,21 @@ The 360T6GS ships with stock Qihoo firmware and no custom bootloader. You need t
 - Soldering iron + solder
 - PuTTY (or any serial terminal)
 - HFS (HTTP File Server) or any HTTP file server
-- Downgrade firmware: `T6GS-4.1.0.2669-rel-upgrade.bin` (by @fourkox, from right.com.cn)
+- Downgrade firmware: `T6GS-4.1.0.2669-rel-upgrade.bin` (by @fourkox — download from right.com.cn thread [360 T6GS详细刷机教程](https://www.right.com.cn/forum/thread-8457978-1-1.html))
 - Custom U-Boot: `u-boot-mt7621.bin` (built from this repo)
 - NOR firmware: built from this repo
+
+### Critical: MT7621 power sequence
+
+MT7621 boards require powering on **before** connecting USB-TTL. If you plug in USB-TTL first, the board will not boot.
+
+Correct order:
+
+1. Power on the router
+2. Wait 3-5 seconds
+3. Plug USB-TTL into PC
+
+This is a known quirk of MT7621 — work quickly between steps.
 
 ### Step 1: Downgrade stock firmware
 
@@ -97,10 +109,20 @@ Connect to USB-TTL: **GND↔GND, RX↔TX, TX↔RX**
 
 ### Step 4: Enter failsafe mode
 
+> **Note:** Due to the MT7621 power sequence quirk, you may need to try several times to catch the failsafe prompt. Be patient and quick.
+
 1. Open PuTTY → Serial → select COM port (check Device Manager)
 2. Baud rate: **115200**
-3. Power on the router
-4. When you see `Press the [f] key and hit [enter] to enter failsafe mode` → press **f** + Enter
+3. Connect Ethernet cable between router LAN port and PC
+4. Set PC network adapter to static IP:
+   - IP: `192.168.2.2`
+   - Subnet mask: `255.255.255.0`
+   - Gateway: `192.168.2.1`
+5. Power on the router → wait 3-5s → plug USB-TTL into PC
+6. When you see `Press the [f] key and hit [enter] to enter failsafe mode` → press **f** + Enter
+7. If you miss the prompt, power cycle and try again. You can also:
+   - Reboot from the stock web UI (192.168.0.1 or 192.168.1.1)
+   - During reboot, spam `f` + Enter in the serial console
 
 ### Step 5: Enable telnet
 
