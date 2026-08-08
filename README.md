@@ -1,16 +1,25 @@
-# 360T6GS NAND Auto Build
+# Qihoo 360T6GS & 360T7 NAND Auto Build
 
-Source-only, CI-first repository for building NAND firmware for the Qihoo 360T6GS via GitHub Actions.
+Source-only, CI-first repository for building NAND firmware for the **Qihoo 360T6GS** and **Qihoo 360T7** via GitHub Actions.
 
-The 360T6GS uses a **128MB NAND** flash (ESMT PSU1GA30DT, SLC). There is no SPI NOR flash on this device.
+Both devices use **128MB NAND** flash (no SPI NOR):
+
+| Device | SoC | Target |
+|--------|-----|--------|
+| 360T6GS | MT7621 + MT7915 | `ramips/mt7621` |
+| 360T7 | MT7981 (Filogic) | `mediatek/filogic` |
+
+Both firmware variants include `wpad-mesh-mbedtls` (802.11s mesh + 802.11r fast roaming), so a 360T6GS and a 360T7 can be meshed and roaming together.
 
 ## Repository layout
 
-- `mt7621_qihoo_360t6gs.dts` — NAND device tree used by the normal build variant
+- `mt7621_qihoo_360t6gs.dts` — NAND device tree used by the normal build variant (T6GS)
 - `mt7621_qihoo_360t6gs-recovery.dts` — recovery variant: makes the `u-boot` partition writable so the bootloader can be restored from Linux (`mtd write`)
-- `scripts/apply-t6gs.sh` — applies NAND DTS + image recipe patch into upstream source
+- `scripts/apply-t6gs.sh` — applies NAND DTS + image recipe patch into upstream source (includes `wpad-mesh-mbedtls`)
 - `scripts/apply-t6gs-recovery.sh` — same, using the recovery DTS
-- `.github/workflows/build-360t6gs-all-wrt.yml` — matrix workflow that builds firmware variants
+- `scripts/apply-t7.sh` — patches `qihoo_360t7` profile in upstream source to add `wpad-mesh-mbedtls`
+- `.github/workflows/build-360t6gs-all-wrt.yml` — matrix workflow that builds 360T6GS firmware variants
+- `.github/workflows/build-360t7-all-wrt.yml` — matrix workflow that builds 360T7 firmware variants
 - `.github/workflows/build-uboot-360t6gs.yml` — builds custom U-Boot for 360T6GS
 - `.github/workflows/build-recovery.yml` — builds the recovery initramfs (writable u-boot partition)
 
@@ -26,15 +35,22 @@ The 360T6GS uses a **128MB NAND** flash (ESMT PSU1GA30DT, SLC). There is no SPI 
 
 ## Build firmware on GitHub Actions
 
+Each device has its own matrix workflow:
+
+| Workflow | Device | Target |
+|----------|--------|--------|
+| `Build 360T6GS WRT` | 360T6GS | `ramips/mt7621` |
+| `Build 360T7 WRT` | 360T7 | `mediatek/filogic` |
+
 1. Go to the **Actions** tab
-2. Select **Build 360T6GS WRT**
+2. Select the workflow for your device
 3. Click **Run workflow**
 4. Wait for all matrix jobs to finish
 5. Download artifacts from each job
 
-Each artifact contains files from `bin/targets/ramips/mt7621/` for that variant.
+Each T6GS artifact contains files from `bin/targets/ramips/mt7621/`; each T7 artifact contains files from `bin/targets/mediatek/filogic/`.
 
-Artifact job names:
+Artifact job names (same matrix for both workflows):
 
 | Job | Source | Branch |
 |-----|--------|--------|
@@ -197,6 +213,54 @@ If the `u-boot` partition was accidentally overwritten (e.g. flashing the wrong 
 4. Power cycle — the router boots from NAND again
 
 The recovery DTS only removes `read-only` from the `u-boot` partition; the `Factory` partition stays read-only.
+
+## 360T7 overview
+
+The 360T7 is a MediaTek **MT7981** (Filogic 820) board with 128MB NAND. It is **different hardware** from the 360T6GS (MT7621 + MT7915); its device tree and profiles live upstream in `target/linux/mediatek/image/filogic.mk` and `target/linux/mediatek/dts/mt7981b-qihoo-360t7.dts`.
+
+The 360T7 firmware is built on the **same 5-source matrix** as the T6GS, with `scripts/apply-t7.sh` adding `wpad-mesh-mbedtls` so it can mesh/roam with a T6GS.
+
+## 360T7 flash
+
+The stock 360T7 ships with MediaTek/Qihoo stock bootloader (it exposes a U-Boot web UI on `192.168.1.1` when reset is held at power-on). To install ImmortalWrt:
+
+1. Build firmware via **Build 360T7 WRT** workflow → download `...qihoo_360t7-squashfs-sysupgrade.itb`
+2. Power off, **hold reset**, power on → U-Boot web UI appears at `192.168.1.1`
+3. Upload the `.itb` file and flash. Power cycle when done.
+
+(First boot is again slow — wait several minutes before accessing LuCI.)
+
+## Mesh + roaming between 360T6GS and 360T7
+
+Both firmware builds include `wpad-mesh-mbedtls`, which provides:
+
+- **802.11s mesh** forwarding (the `wpad-basic-*` package does **not** support mesh, so it is replaced by `wpad-mesh-mbedtls`)
+- **802.11r/FT fast roaming** between the two APs
+
+Because the 360T6GS (MT7621+MT7915) and 360T7 (MT7981) are unrelated chipsets, a plain wireless-repeater/"same SSID" setup will **not** let clients roam automatically. Instead use a real **802.11s mesh** link: on the 5 GHz radio of each node go to **Network → Wireless → Add** (mesh mode) and configure:
+
+| Setting | Value |
+|---------|-------|
+| Mode | **802.11s** |
+| Network | mesh (create new) |
+| Mesh ID | same on both nodes, e.g. `360mesh` |
+| Encryption | **SAE** (same password on both nodes) |
+| Band | **5 GHz (AC/AX)** — both chips support it |
+
+Then bridge the mesh interface + your client network together (e.g. attach the mesh interface to the `lan` bridge, or run `batman-adv` if you want layer-3 mesh routing).
+
+For **802.11r FT roaming** on the client (SSID) network, create a wireless `wifi-iface` (AP) shared by both nodes with the **same SSID/ESSID, same FRL (roaming) key, and `option ieee80211r '1'`:
+
+| Setting | Value |
+|---------|-------|
+| Mode | **Access** (AP) |
+| Network | lan |
+| SSID | same on both nodes |
+| Encryption | WPA2-PSK (or WPA3-SAE) |
+| IEEE 802.11r | **enabled** (FT) |
+| Mobility domain / R0KH / R1KH | consistent across both nodes |
+
+Clients doing 802.11r FT will fast-roam between the 360T6GS and 360T7 APs with sub-30 ms transitions as you move between their coverage areas.
 
 ## Credits
 

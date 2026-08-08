@@ -1,0 +1,98 @@
+name: Build 360T7 WRT
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: openwrt-main
+            repo: https://github.com/openwrt/openwrt.git
+            ref: main
+          - name: immortalwrt-main
+            repo: https://github.com/immortalwrt/immortalwrt.git
+            ref: master
+          - name: lede-main
+            repo: https://github.com/coolsnowwolf/lede.git
+            ref: master
+          - name: x-wrt-main
+            repo: https://github.com/x-wrt/x-wrt.git
+            ref: master
+          - name: lienol-main
+            repo: https://github.com/Lienol/openwrt.git
+            ref: 25.12
+
+    name: ${{ matrix.name }}
+
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android || true
+          docker system prune -af || true
+          df -h
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ack antlr3 asciidoc autoconf automake autopoint binutils bison \
+            build-essential bzip2 ccache cmake cpio curl device-tree-compiler \
+            fastjar flex gawk gettext gcc-multilib g++-multilib git gperf \
+            haveged help2man intltool libc6-dev-i386 libelf-dev libglib2.0-dev \
+            libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses-dev \
+            libncurses5-dev libpython3-dev libreadline-dev libssl-dev libtool \
+            lrzsz msmtp ninja-build p7zip p7zip-full patch pkgconf python3 \
+            python3-pip python3-setuptools qemu-utils rsync scons squashfs-tools \
+            subversion swig texinfo uglifyjs upx-ucl unzip wget xxd zlib1g-dev
+
+      - name: Clone source
+        run: |
+          git clone --depth 1 --branch "${{ matrix.ref }}" "${{ matrix.repo }}" source
+
+      - name: Apply profile patch
+        run: |
+          bash scripts/apply-t7.sh "$(pwd)/source"
+
+      - name: Configure target profile
+        working-directory: source
+        run: |
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          cat > .config <<'EOF'
+          CONFIG_TARGET_mediatek=y
+          CONFIG_TARGET_mediatek_filogic=y
+          CONFIG_TARGET_mediatek_filogic_DEVICE_qihoo_360t7=y
+          EOF
+          make defconfig
+
+      - name: Download package sources
+        working-directory: source
+        run: make download -j8
+
+      - name: Build firmware
+        working-directory: source
+        run: make -j"$(nproc)" V=s
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p "artifacts/${{ matrix.name }}"
+          cp -a source/bin/targets/mediatek/filogic/* "artifacts/${{ matrix.name }}/"
+          ls -lah "artifacts/${{ matrix.name }}"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: artifacts/${{ matrix.name }}
+          if-no-files-found: error
