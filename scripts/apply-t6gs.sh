@@ -38,7 +38,7 @@ BEGIN { inblock=0; seen=0 }
   print "  KERNEL_IN_UBI := 1"
   print "  IMAGES += firmware.bin"
   print "  IMAGE/firmware.bin := append-kernel | pad-to $$(KERNEL_SIZE) | append-ubi | check-size"
-  print "  DEVICE_PACKAGES += kmod-mt7915-firmware luci luci-app-sqm sqm-scripts ttyd -wpad-basic-mbedtls wpad-mesh-mbedtls"
+  print "  DEVICE_PACKAGES += kmod-mt7915-firmware -wpad-basic-mbedtls wpad-mesh-mbedtls luci luci-app-sqm sqm-scripts ttyd"
   print "endef"
   print "TARGET_DEVICES += qihoo_360t6gs"
   next
@@ -61,7 +61,7 @@ END {
     print "  KERNEL_IN_UBI := 1"
     print "  IMAGES += firmware.bin"
     print "  IMAGE/firmware.bin := append-kernel | pad-to $$(KERNEL_SIZE) | append-ubi | check-size"
-    print "  DEVICE_PACKAGES += kmod-mt7915-firmware luci luci-app-sqm sqm-scripts ttyd -wpad-basic-mbedtls wpad-mesh-mbedtls"
+    print "  DEVICE_PACKAGES += kmod-mt7915-firmware -wpad-basic-mbedtls wpad-mesh-mbedtls luci luci-app-sqm sqm-scripts ttyd"
     print "endef"
     print "TARGET_DEVICES += qihoo_360t6gs"
   }
