@@ -1,4 +1,4 @@
-name: Build 360T6GS Recovery Initramfs (NAND)
+name: Build 360T6GS Recovery Initramfs
 
 on:
   workflow_dispatch:
@@ -40,7 +40,7 @@ jobs:
 
       - name: Apply recovery DTS patch
         run: |
-          bash scripts/apply-t6gs-nand-recovery.sh "$(pwd)/source"
+          bash scripts/apply-t6gs-recovery.sh "$(pwd)/source"
 
       - name: Configure target profile
         working-directory: source
@@ -71,6 +71,6 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: recovery-nand
+          name: recovery
           path: artifacts
           if-no-files-found: error

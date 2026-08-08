@@ -9,7 +9,7 @@ fi
 ROOT="$1"
 MK_FILE="$ROOT/target/linux/ramips/image/mt7621.mk"
 DTS_DST="$ROOT/target/linux/ramips/dts/mt7621_qihoo_360t6gs.dts"
-DTS_SRC="$(cd "$(dirname "$0")/.." && pwd)/mt7621_qihoo_360t6gs-nand.dts"
+DTS_SRC="$(cd "$(dirname "$0")/.." && pwd)/mt7621_qihoo_360t6gs.dts"
 
 if [ ! -f "$MK_FILE" ]; then
   echo "Missing file: $MK_FILE"

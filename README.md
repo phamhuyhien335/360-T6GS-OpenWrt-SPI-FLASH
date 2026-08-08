@@ -6,13 +6,13 @@ The 360T6GS uses a **128MB NAND** flash (ESMT PSU1GA30DT, SLC). There is no SPI 
 
 ## Repository layout
 
-- `mt7621_qihoo_360t6gs-nand.dts` — NAND device tree used by the normal build variant
-- `mt7621_qihoo_360t6gs-nand-recovery.dts` — recovery variant: makes the `u-boot` partition writable so the bootloader can be restored from Linux (`mtd write`)
-- `scripts/apply-t6gs-nand.sh` — applies NAND DTS + image recipe patch into upstream source
-- `scripts/apply-t6gs-nand-recovery.sh` — same, using the recovery DTS
-- `.github/workflows/build-360t6gs-all-wrt.yml` — matrix workflow that builds NAND firmware variants
-- `.github/workflows/build-uboot-360t6gs-nand.yml` — builds custom U-Boot for 360T6GS (NAND)
-- `.github/workflows/build-recovery-nand.yml` — builds the recovery initramfs (writable u-boot partition)
+- `mt7621_qihoo_360t6gs.dts` — NAND device tree used by the normal build variant
+- `mt7621_qihoo_360t6gs-recovery.dts` — recovery variant: makes the `u-boot` partition writable so the bootloader can be restored from Linux (`mtd write`)
+- `scripts/apply-t6gs.sh` — applies NAND DTS + image recipe patch into upstream source
+- `scripts/apply-t6gs-recovery.sh` — same, using the recovery DTS
+- `.github/workflows/build-360t6gs-all-wrt.yml` — matrix workflow that builds firmware variants
+- `.github/workflows/build-uboot-360t6gs.yml` — builds custom U-Boot for 360T6GS
+- `.github/workflows/build-recovery.yml` — builds the recovery initramfs (writable u-boot partition)
 
 ## NAND layout
 
@@ -38,20 +38,20 @@ Artifact job names:
 
 | Job | Source | Branch |
 |-----|--------|--------|
-| `openwrt-main-nand` | openwrt/openwrt | main |
-| `immortalwrt-main-nand` | immortalwrt/immortalwrt | master |
-| `lede-main-nand` | coolsnowwolf/lede | master |
-| `x-wrt-main-nand` | x-wrt/x-wrt | master |
-| `lienol-main-nand` | Lienol/openwrt | 25.12 |
+| `openwrt-main` | openwrt/openwrt | main |
+| `immortalwrt-main` | immortalwrt/immortalwrt | master |
+| `lede-main` | coolsnowwolf/lede | master |
+| `x-wrt-main` | x-wrt/x-wrt | master |
+| `lienol-main` | Lienol/openwrt | 25.12 |
 
 ## Build U-Boot
 
 A custom U-Boot is required to flash firmware on the 360T6GS. Build it via GitHub Actions:
 
 1. Go to the **Actions** tab
-2. Select **Build 360T6GS U-Boot (NAND)**
+2. Select **Build 360T6GS U-Boot**
 3. Click **Run workflow**
-4. Download the `u-boot-T6GS-nand` artifact
+4. Download the `u-boot-T6GS` artifact
 
 The U-Boot is configured with:
 
@@ -79,7 +79,7 @@ The 360T6GS ships with stock Qihoo firmware and no custom bootloader. You need t
 - PuTTY (or any serial terminal)
 - HTTP file server (HFS, or tftpd)
 - Downgrade firmware: `T6GS-4.1.0.2669-rel-upgrade.bin` (by @fourkox — download from right.com.cn thread [360 T6GS详细刷机教程](https://www.right.com.cn/forum/thread-8457978-1-1.html))
-- Custom U-Boot: `u-boot-T6GS-nand.bin` (built from this repo)
+- Custom U-Boot: `u-boot-T6GS` artifact (built from this repo)
 - NAND firmware: built from this repo
 
 ### Critical: MT7621 power sequence
@@ -152,19 +152,19 @@ Set a root password when prompted.
 1. Disconnect USB-TTL
 2. Connect router LAN port to PC with Ethernet cable
 3. Power on the router normally
-4. Open HFS → drag `u-boot-T6GS-nand.bin` into the window
-5. Copy the HTTP link (e.g., `http://192.168.2.x:8080/u-boot-T6GS-nand.bin`)
+4. Open HFS → drag `u-boot-T6GS.bin` into the window
+5. Copy the HTTP link (e.g., `http://192.168.2.x:8080/u-boot-T6GS.bin`)
 6. Open PuTTY → Telnet → connect to `192.168.1.1`
 7. Login with `root` and the password you set
 8. Run:
 
 ```
 cd /tmp
-wget http://192.168.2.x:8080/u-boot-T6GS-nand.bin
-mtd write u-boot-T6GS-nand.bin u-boot
+wget http://192.168.2.x:8080/u-boot-T6GS.bin
+mtd write u-boot-T6GS.bin u-boot
 ```
 
-You should see `Writing from u-boot-T6GS-nand.bin to u-boot ...` on success.
+You should see `Writing from u-boot-T6GS.bin to u-boot ...` on success.
 
 ### Step 7: Flash NAND firmware via U-Boot
 
@@ -185,7 +185,7 @@ Access LuCI at `192.168.1.1`.
 
 If the `u-boot` partition was accidentally overwritten (e.g. flashing the wrong image), the normal firmware DTS marks it `read-only`, which prevents `mtd write` from restoring it. Use the recovery initramfs instead:
 
-1. Build **Build recovery initramfs** (`build-recovery-nand.yml`) → get `...-initramfs-kernel.bin`
+1. Build **Build 360T6GS Recovery Initramfs** (`build-recovery.yml`) → get `...-initramfs-kernel.bin`
 2. Boot it via U-Boot TFTP: copy the file as `recovery.bin` into the tftpd base directory, power on the router with the reset button pressed, and it downloads `recovery.bin` to RAM
 3. In the booted Linux, download the original bootloader and write it back:
    ```

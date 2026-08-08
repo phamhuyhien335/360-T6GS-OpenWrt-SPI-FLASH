@@ -14,26 +14,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: openwrt-main-nand
+          - name: openwrt-main
             repo: https://github.com/openwrt/openwrt.git
             ref: main
-            flash: nand
-          - name: immortalwrt-main-nand
+          - name: immortalwrt-main
             repo: https://github.com/immortalwrt/immortalwrt.git
             ref: master
-            flash: nand
-          - name: lede-main-nand
+          - name: lede-main
             repo: https://github.com/coolsnowwolf/lede.git
             ref: master
-            flash: nand
-          - name: x-wrt-main-nand
+          - name: x-wrt-main
             repo: https://github.com/x-wrt/x-wrt.git
             ref: master
-            flash: nand
-          - name: lienol-main-nand
+          - name: lienol-main
             repo: https://github.com/Lienol/openwrt.git
             ref: 25.12
-            flash: nand
 
     name: ${{ matrix.name }}
 
@@ -65,9 +60,9 @@ jobs:
         run: |
           git clone --depth 1 --branch "${{ matrix.ref }}" "${{ matrix.repo }}" source
 
-      - name: Apply ${{ matrix.flash }} profile patch
+      - name: Apply profile patch
         run: |
-          bash scripts/apply-t6gs-${{ matrix.flash }}.sh "$(pwd)/source"
+          bash scripts/apply-t6gs.sh "$(pwd)/source"
 
       - name: Configure target profile
         working-directory: source
