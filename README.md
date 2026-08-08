@@ -249,7 +249,9 @@ Because the 360T6GS (MT7621+MT7915) and 360T7 (MT7981) are unrelated chipsets, a
 
 Then bridge the mesh interface + your client network together (e.g. attach the mesh interface to the `lan` bridge, or run `batman-adv` if you want layer-3 mesh routing).
 
-For **802.11r FT roaming** on the client (SSID) network, create a wireless `wifi-iface` (AP) shared by both nodes with the **same SSID/ESSID, same FRL (roaming) key, and `option ieee80211r '1'`:
+> **Note:** Pure 802.11s mesh between an MT7981 (T7) and MT7621 (T6GS) node works fine. A known caveat is that **batman-adv over wireless mesh on MT7981/MT7986 is slow (≈2–3 Mbps TX)** ([openwrt#18703](https://github.com/openwrt/openwrt/issues/18703)); pure 802.11s or a wired bridge is the recommended backhaul.
+
+For **802.11r FT roaming** on the client (SSID) network, create an identical `wifi-iface` (AP) on both nodes. The mesh interface itself does the inter-node forwarding; the AP interface is what wireless clients connect to. On both nodes:
 
 | Setting | Value |
 |---------|-------|
@@ -258,9 +260,20 @@ For **802.11r FT roaming** on the client (SSID) network, create a wireless `wifi
 | SSID | same on both nodes |
 | Encryption | WPA2-PSK (or WPA3-SAE) |
 | IEEE 802.11r | **enabled** (FT) |
-| Mobility domain / R0KH / R1KH | consistent across both nodes |
+| Mobility domain | same 4-hex on both nodes, e.g. `1337` |
+| FT protocol | `FT over the DS` (`ft_over_ds=1`) — reliable between mixed chipsets |
+| PMK R1 push | enabled |
 
-Clients doing 802.11r FT will fast-roam between the 360T6GS and 360T7 APs with sub-30 ms transitions as you move between their coverage areas.
+For multi-AP FT, pre-share the **R0KH/R1KH** keys so each AP can authenticate a roaming station for the others. Put this under `config wifi-device`/`hostapd` (see OpenWrt `hostapd.operations` docs):
+
+| Field | On the primary node | On the secondary node |
+|-------|--------------------|-----------------------|
+| `r0kh` | `r0kh=00:11:22:33:44:55 360t6gs r0-secret` | `r0kh=00:11:22:33:44:55 360t7 r0-secret` |
+| `r1kh` | `r1kh=<MAC-of-T7> 00:11:22:33:44:55 r1-secret` | `r1kh=<MAC-of-T6GS> 00:11:22:33:44:55 r1-secret` |
+
+(`r0kh` MAC/key is the *remote* AP; the second `r0kh` token is an arbitrary label, the third is the shared secret — keep the same shared secret on both.)
+
+Clients doing 802.11r FT will fast-roam between the 360T6GS and 360T7 APs with sub-30 ms transitions as you move between their coverage areas. Roaming is ultimately a client-side decision (802.11k/v/BSS-transition help, but only if the client supports and uses them); a few Android devices are known to disconnect periodically with 802.11r — that is client-side and not fixable from the APs.
 
 ## Credits
 
