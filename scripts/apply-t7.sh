@@ -14,7 +14,7 @@ if [ ! -f "$MK_FILE" ]; then
   exit 1
 fi
 
-MESH_PKGS="wpad-mesh-mbedtls luci-app-sqm luci-app-ttyd"
+MESH_PKGS="wpad-mesh-mbedtls luci luci-app-sqm luci-app-ttyd"
 
 tmp_file="$(mktemp)"
 

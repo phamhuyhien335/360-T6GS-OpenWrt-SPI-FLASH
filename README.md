@@ -11,7 +11,7 @@ Both devices use **128MB NAND** flash (no SPI NOR):
 
 Both firmware variants include `wpad-mesh-mbedtls` (802.11s mesh + 802.11r fast roaming), so a 360T6GS and a 360T7 can be meshed and roaming together.
 
-On top of that, both variants install `luci-app-sqm` (SQM/queue-management UI) and `luci-app-ttyd` (web terminal). Their dependencies (`sqm-scripts`, `ttyd`, `luci-base`, ...) are pulled in automatically by the package manager — they are not listed explicitly in `DEVICE_PACKAGES`.
+On top of that, both variants install `luci` (full admin UI), `luci-app-sqm` (SQM/queue-management UI) and `luci-app-ttyd` (web terminal). Their dependencies (`sqm-scripts`, `ttyd`, `luci-base`, ...) are pulled in automatically by the package manager.
 
 ## Repository layout
 
