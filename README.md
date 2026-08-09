@@ -11,6 +11,8 @@ Both devices use **128MB NAND** flash (no SPI NOR):
 
 Both firmware variants include `wpad-mesh-mbedtls` (802.11s mesh + 802.11r fast roaming), so a 360T6GS and a 360T7 can be meshed and roaming together.
 
+On top of that, both variants install `luci-app-sqm` (SQM/queue-management UI) and `luci-app-ttyd` (web terminal). Their dependencies (`sqm-scripts`, `ttyd`, `luci-base`, ...) are pulled in automatically by the package manager — they are not listed explicitly in `DEVICE_PACKAGES`.
+
 ## Repository layout
 
 - `mt7621_qihoo_360t6gs.dts` — NAND device tree used by the normal build variant (T6GS)
@@ -274,6 +276,8 @@ For multi-AP FT, pre-share the **R0KH/R1KH** keys so each AP can authenticate a 
 (`r0kh` MAC/key is the *remote* AP; the second `r0kh` token is an arbitrary label, the third is the shared secret — keep the same shared secret on both.)
 
 Clients doing 802.11r FT will fast-roam between the 360T6GS and 360T7 APs with sub-30 ms transitions as you move between their coverage areas. Roaming is ultimately a client-side decision (802.11k/v/BSS-transition help, but only if the client supports and uses them); a few Android devices are known to disconnect periodically with 802.11r — that is client-side and not fixable from the APs.
+
+> **Note:** On MT7981/MT7621 with recent mac80211, 802.11r roams hit a kernel race that logs `nl80211: kernel reports: key addition failed` and can leave the client associated-but-broken until the next reassociation ([mt76#1098](https://github.com/openwrt/mt76/issues/1098)). The `openwrt-main` and `immortalwrt-main` matrix jobs apply the upstream fix ([openwrt#23181](https://github.com/openwrt/openwrt/pull/23181), still unmerged) via `scripts/apply-ft-fix.sh`, which drops in the `400-mac80211-defer-ap-side-ft-key-upload.patch` and `999-hostapd-ft-readd-unassociated-sta-before-ptk.patch` patches. Older sources (`lede`, `x-wrt`, `lienol`) keep their stock mac80211 since the patch targets 6.18 backports.
 
 ## Credits
 

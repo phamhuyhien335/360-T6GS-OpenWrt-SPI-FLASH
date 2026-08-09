@@ -2,33 +2,69 @@ name: Build 360T7 WRT
 
 on:
   workflow_dispatch:
+    inputs:
+      build-openwrt-main:
+        description: 'Build openwrt-main (OpenWrt main)'
+        type: boolean
+        default: true
+      build-immortalwrt-main:
+        description: 'Build immortalwrt-main (ImmortalWrt master)'
+        type: boolean
+        default: true
+      build-lede-main:
+        description: 'Build lede-main (coolsnowwolf/lede)'
+        type: boolean
+        default: false
+      build-x-wrt-main:
+        description: 'Build x-wrt-main (x-wrt/x-wrt)'
+        type: boolean
+        default: false
+      build-lienol-main:
+        description: 'Build lienol-main (Lienol/openwrt 25.12)'
+        type: boolean
+        default: false
+      ft-fix:
+        description: 'Apply FT fix patches (mac80211 + hostapd). NOTE: only for 6.18 kernel sources (openwrt-main / immortalwrt-main)'
+        type: boolean
+        default: true
 
 permissions:
   contents: read
 
 jobs:
+  generate-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Build matrix from inputs
+        id: set-matrix
+        run: |
+          MATRIX='[]'
+          FT_FIX="${{ inputs.ft-fix }}"
+          add() {
+            MATRIX=$(echo "$MATRIX" | jq -c --arg name "$1" --arg repo "$2" --arg ref "$3" --arg ftfix "$4" \
+              '. + [{"name": $name, "repo": $repo, "ref": $ref, "ft-fix": $ftfix}]')
+          }
+          if [ "${{ inputs.build-openwrt-main }}" == "true" ]; then add openwrt-main "https://github.com/openwrt/openwrt.git" main "$FT_FIX"; fi
+          if [ "${{ inputs.build-immortalwrt-main }}" == "true" ]; then add immortalwrt-main "https://github.com/immortalwrt/immortalwrt.git" master "$FT_FIX"; fi
+          if [ "${{ inputs.build-lede-main }}" == "true" ]; then add lede-main "https://github.com/coolsnowwolf/lede.git" master false; fi
+          if [ "${{ inputs.build-x-wrt-main }}" == "true" ]; then add x-wrt-main "https://github.com/x-wrt/x-wrt.git" master false; fi
+          if [ "${{ inputs.build-lienol-main }}" == "true" ]; then add lienol-main "https://github.com/Lienol/openwrt.git" 25.12 false; fi
+          if [ "$MATRIX" == "[]" ]; then
+            echo "::error::No source selected. Tick at least one build option."
+            exit 1
+          fi
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: generate-matrix
     runs-on: ubuntu-22.04
     timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - name: openwrt-main
-            repo: https://github.com/openwrt/openwrt.git
-            ref: main
-          - name: immortalwrt-main
-            repo: https://github.com/immortalwrt/immortalwrt.git
-            ref: master
-          - name: lede-main
-            repo: https://github.com/coolsnowwolf/lede.git
-            ref: master
-          - name: x-wrt-main
-            repo: https://github.com/x-wrt/x-wrt.git
-            ref: master
-          - name: lienol-main
-            repo: https://github.com/Lienol/openwrt.git
-            ref: 25.12
+        include: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
 
     name: ${{ matrix.name }}
 
@@ -63,6 +99,11 @@ jobs:
       - name: Apply profile patch
         run: |
           bash scripts/apply-t7.sh "$(pwd)/source"
+
+      - name: Apply FT fix patches
+        if: matrix.ft-fix == 'true'
+        run: |
+          bash scripts/apply-ft-fix.sh "$(pwd)/source"
 
       - name: Configure target profile
         working-directory: source
