@@ -61,6 +61,8 @@ jobs:
     needs: generate-matrix
     runs-on: ubuntu-22.04
     timeout-minutes: 360
+    env:
+      CCACHE_MAXSIZE: "2G"
     strategy:
       fail-fast: false
       matrix:
@@ -93,8 +95,34 @@ jobs:
             subversion swig texinfo uglifyjs upx-ucl unzip wget xxd zlib1g-dev
 
       - name: Clone source
+        id: clone
         run: |
           git clone --depth 1 --branch "${{ matrix.ref }}" "${{ matrix.repo }}" source
+          echo "srcsha=$(git -C source rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore download cache
+        uses: actions/cache@v4
+        with:
+          path: source/dl
+          key: dl-${{ matrix.name }}-${{ github.sha }}-${{ steps.clone.outputs.srcsha }}
+          restore-keys: |
+            dl-${{ matrix.name }}-
+
+      - name: Restore ccache
+        uses: actions/cache@v4
+        with:
+          path: source/.ccache
+          key: ccache-${{ matrix.name }}-${{ github.sha }}-${{ steps.clone.outputs.srcsha }}
+          restore-keys: |
+            ccache-${{ matrix.name }}-
+
+      - name: Add luci-app-easymesh source
+        run: |
+          git clone --depth 1 https://github.com/torguardvpn/luci-app-easymesh.git source/package/luci-app-easymesh
+
+      - name: Add luci-app-client-manager source
+        run: |
+          git clone --depth 1 https://github.com/nightcodex7/luci-app-client-manager.git source/package/luci-app-client-manager
 
       - name: Apply profile patch
         run: |
@@ -114,6 +142,8 @@ jobs:
           CONFIG_TARGET_mediatek=y
           CONFIG_TARGET_mediatek_filogic=y
           CONFIG_TARGET_mediatek_filogic_DEVICE_qihoo_360t7=y
+          CONFIG_DEVEL=y
+          CONFIG_CCACHE=y
           EOF
           make defconfig
 

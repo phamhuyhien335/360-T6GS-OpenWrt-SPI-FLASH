@@ -10,6 +10,8 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     timeout-minutes: 360
+    env:
+      CCACHE_MAXSIZE: "2G"
     steps:
       - name: Checkout this repo
         uses: actions/checkout@v4
@@ -35,8 +37,26 @@ jobs:
             subversion swig texinfo uglifyjs upx-ucl unzip wget xxd zlib1g-dev
 
       - name: Clone source
+        id: clone
         run: |
           git clone --depth 1 --branch master https://github.com/immortalwrt/immortalwrt.git source
+          echo "srcsha=$(git -C source rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore download cache
+        uses: actions/cache@v4
+        with:
+          path: source/dl
+          key: dl-recovery-${{ github.sha }}-${{ steps.clone.outputs.srcsha }}
+          restore-keys: |
+            dl-recovery-
+
+      - name: Restore ccache
+        uses: actions/cache@v4
+        with:
+          path: source/.ccache
+          key: ccache-recovery-${{ github.sha }}-${{ steps.clone.outputs.srcsha }}
+          restore-keys: |
+            ccache-recovery-
 
       - name: Apply recovery DTS patch
         run: |
@@ -55,6 +75,8 @@ jobs:
           CONFIG_TARGET_ramips=y
           CONFIG_TARGET_ramips_mt7621=y
           CONFIG_TARGET_ramips_mt7621_DEVICE_qihoo_360t6gs=y
+          CONFIG_DEVEL=y
+          CONFIG_CCACHE=y
           EOF
           make defconfig
 

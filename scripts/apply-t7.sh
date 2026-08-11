@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ $# -ne 1 ]; then
-  echo "Usage: $0 /path/to/openwrt-or-immortalwrt-source"
+usage() {
+  echo "Usage: $0 /path/to/source"
   exit 1
+}
+
+if [ $# -ne 1 ]; then
+  usage
 fi
 
 ROOT="$1"
+
 MK_FILE="$ROOT/target/linux/mediatek/image/filogic.mk"
 
 if [ ! -f "$MK_FILE" ]; then
@@ -14,11 +19,11 @@ if [ ! -f "$MK_FILE" ]; then
   exit 1
 fi
 
-MESH_PKGS="wpad-mesh-mbedtls luci luci-app-sqm luci-app-ttyd"
+PKGS="wpad-openssl luci luci-app-sqm luci-app-ttyd luci-app-filebrowser luci-app-easymesh luci-app-client-manager"
 
 tmp_file="$(mktemp)"
 
-awk -v mesh="$MESH_PKGS" '
+awk -v pkgs="$PKGS" '
 BEGIN { inblock=0; done=0 }
 {
   line=$0
@@ -29,17 +34,19 @@ BEGIN { inblock=0; done=0 }
     next
   }
   if (inblock && line ~ /^[[:space:]]*DEVICE_PACKAGES[[:space:]]*:?=/) {
-    if (line !~ /wpad-mesh-mbedtls/) {
+    if (line ~ /luci-app-sqm/) {
+      print
+    } else {
       sub(/[[:space:]]*$/, "", line)
-      print line " " mesh
-    } else { print }
+      print line " " pkgs
+    }
     done=1
     inblock=0
     next
   }
   if (inblock && line ~ /^endef[[:space:]]*$/) {
     if (done == 0) {
-      print "\tDEVICE_PACKAGES := " mesh
+      print "\tDEVICE_PACKAGES := " pkgs
       done=1
     }
     inblock=0
@@ -51,4 +58,4 @@ BEGIN { inblock=0; done=0 }
 
 mv "$tmp_file" "$MK_FILE"
 
-echo "Applied 360T7 mesh patch to: $ROOT"
+echo "Applied 360T7 patch to: $ROOT"
