@@ -8,13 +8,13 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
     steps:
       - name: Checkout uboot-mt7621
         uses: actions/checkout@v7
         with:
-          repository: DragonBluep/uboot-mt7621
+          repository: Yuzhii0718/uboot-mt7621-dhcpd
           ref: main
           path: uboot-mt7621
 
@@ -30,24 +30,40 @@ jobs:
           ./configure && sudo make && sudo make install
           sudo ln -s /usr/bin/python2 /usr/bin/python
 
+      - name: Cache OpenWrt toolchain
+        id: cache-toolchain
+        uses: actions/cache@v6
+        with:
+          path: toolchain.tar.xz
+          key: mt7621-toolchain-20230517
+
       - name: Download OpenWrt toolchain
+        if: steps.cache-toolchain.outputs.cache-hit != 'true'
         run: |
-          wget -O - https://github.com/DragonBluep/uboot-mt7621/releases/download/20230517/openwrt-toolchain-ramips-mt7621_gcc-12.3.0_musl.Linux-x86_64.tar.xz \
-            | tar --xz -xf -
+          wget -O toolchain.tar.xz https://github.com/DragonBluep/uboot-mt7621/releases/download/20230517/openwrt-toolchain-ramips-mt7621_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+
+      - name: Extract OpenWrt toolchain
+        run: |
+          tar --xz -xf toolchain.tar.xz
 
       - name: Build U-Boot for 360T6GS
         working-directory: uboot-mt7621
         run: |
-          ./customize.sh \
-            NAND \
-            "512k(u-boot),256k(u-boot-env),256k(factory),-(firmware)" \
-            0x0 \
-            7 \
-            13 \
-            880 \
-            1200 \
-            DDR3-256MiB \
-            115200
+          ./build.sh \
+            --flash NAND \
+            --mtdparts "512k(u-boot),512k(config),512k(factory),-(firmware)" \
+            --model "Qihoo_360T6GS" \
+            --kernel-offset 0x180000 \
+            --reset-pin 7 \
+            --wps-pin 6 \
+            --sysled-pin 13 \
+            --sysled2-pin 15 \
+            --cpufreq 880 \
+            --ramfreq 1200 \
+            --ddrparam DDR3-256MiB \
+            --oldparam false \
+            --baudrate 115200 \
+            --yes
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
