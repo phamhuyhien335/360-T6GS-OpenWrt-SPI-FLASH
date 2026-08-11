@@ -67,4 +67,35 @@ END {
 ' "$MK_FILE" > "$tmp_file"
 mv "$tmp_file" "$MK_FILE"
 
+PLATFORM_FILE="$ROOT/target/linux/ramips/mt7621/base-files/lib/upgrade/platform.sh"
+
+if [ -f "$PLATFORM_FILE" ]; then
+  tmp_file="$(mktemp)"
+  awk '
+  function emit_case() {
+    print "\tqihoo,360t6gs)"
+    print "\t\tCI_UBIPART=\"firmware\""
+    print "\t\tCI_KERNPART=\"kernel\""
+    print "\t\tnand_do_upgrade \"$1\""
+    print "\t\t;;"
+  }
+  BEGIN { seen=0; have_prev=0 }
+  /^[[:space:]]*qihoo,360t6gs\)/ { seen=1 }
+  seen == 1 { if (have_prev) print prev; have_prev=0; print; next }
+  /^[[:space:]]*default_do_upgrade "\$1"$/ && prev ~ /^[[:space:]]*\*\)$/ {
+    emit_case()
+    if (have_prev) print prev
+    print
+    have_prev=0
+    next
+  }
+  { if (have_prev) print prev; prev=$0; have_prev=1 }
+  END { if (have_prev) print prev }
+  ' "$PLATFORM_FILE" > "$tmp_file"
+  mv "$tmp_file" "$PLATFORM_FILE"
+  echo "Patched platform.sh: qihoo_360t6gs -> nand_do_upgrade (CI_UBIPART=firmware, CI_KERNPART=kernel)"
+else
+  echo "Warning: $PLATFORM_FILE not found, skipped"
+fi
+
 echo "Applied NAND patch to: $ROOT"
