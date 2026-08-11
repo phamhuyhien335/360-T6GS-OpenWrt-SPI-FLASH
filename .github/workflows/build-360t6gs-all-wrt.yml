@@ -72,7 +72,7 @@ jobs:
 
     steps:
       - name: Checkout this repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Free disk space
         run: |
@@ -101,7 +101,7 @@ jobs:
           echo "srcsha=$(git -C source rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Restore download cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: source/dl
           key: dl-${{ matrix.name }}-${{ github.sha }}-${{ steps.clone.outputs.srcsha }}
@@ -109,7 +109,7 @@ jobs:
             dl-${{ matrix.name }}-
 
       - name: Restore ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: source/.ccache
           key: ccache-${{ matrix.name }}-${{ github.sha }}-${{ steps.clone.outputs.srcsha }}
@@ -162,7 +162,7 @@ jobs:
           ls -lah "artifacts/${{ matrix.name }}"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.name }}
           path: artifacts/${{ matrix.name }}
