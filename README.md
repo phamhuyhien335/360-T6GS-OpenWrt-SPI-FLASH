@@ -54,13 +54,10 @@ Each T6GS artifact contains files from `bin/targets/ramips/mt7621/`; each T7 art
 
 Artifact job names (same matrix for both workflows):
 
-| Job | Source | Branch |
-|-----|--------|--------|
-| `openwrt-main` | openwrt/openwrt | main |
-| `immortalwrt-main` | immortalwrt/immortalwrt | master |
-| `lede-main` | coolsnowwolf/lede | master |
-| `x-wrt-main` | x-wrt/x-wrt | master |
-| `lienol-main` | Lienol/openwrt | 25.12 |
+| Job | Source | Branch / Tag |
+|-----|--------|--------------|
+| `immortalwrt-master` | immortalwrt/immortalwrt | `master` (SNAPSHOT / Latest dev) |
+| `immortalwrt-<tag>` | immortalwrt/immortalwrt | Custom Release Tag or Branch (e.g. `openwrt-25.12`, `v24.10.0`, `v23.05.4`) |
 
 ## Build U-Boot
 

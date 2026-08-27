@@ -3,28 +3,16 @@ name: Build 360T6GS WRT
 on:
   workflow_dispatch:
     inputs:
-      build-openwrt-main:
-        description: 'Build openwrt-main (OpenWrt main)'
+      build-master:
+        description: 'Build ImmortalWrt master (SNAPSHOT / Latest dev branch)'
         type: boolean
         default: true
-      build-immortalwrt-main:
-        description: 'Build immortalwrt-main (ImmortalWrt master)'
-        type: boolean
-        default: true
-      build-lede-main:
-        description: 'Build lede-main (coolsnowwolf/lede)'
-        type: boolean
-        default: false
-      build-x-wrt-main:
-        description: 'Build x-wrt-main (x-wrt/x-wrt)'
-        type: boolean
-        default: false
-      build-lienol-main:
-        description: 'Build lienol-main (Lienol/openwrt 25.12)'
-        type: boolean
-        default: false
+      release-tag:
+        description: 'Build specific ImmortalWrt Release Tag or Branch (e.g. openwrt-25.12, v24.10.0)'
+        type: string
+        default: ''
       ft-fix:
-        description: 'Apply FT fix patches (mac80211 + hostapd). NOTE: only for 6.18 kernel sources (openwrt-main / immortalwrt-main)'
+        description: 'Apply FT fix patches (mac80211 + hostapd). NOTE: only for 6.18 kernel sources (immortalwrt master)'
         type: boolean
         default: true
 
@@ -46,13 +34,10 @@ jobs:
             MATRIX=$(echo "$MATRIX" | jq -c --arg name "$1" --arg repo "$2" --arg ref "$3" --arg ftfix "$4" \
               '. + [{"name": $name, "repo": $repo, "ref": $ref, "ft-fix": $ftfix}]')
           }
-          if [ "${{ inputs.build-openwrt-main }}" == "true" ]; then add openwrt-main "https://github.com/openwrt/openwrt.git" main "$FT_FIX"; fi
-          if [ "${{ inputs.build-immortalwrt-main }}" == "true" ]; then add immortalwrt-main "https://github.com/immortalwrt/immortalwrt.git" master "$FT_FIX"; fi
-          if [ "${{ inputs.build-lede-main }}" == "true" ]; then add lede-main "https://github.com/coolsnowwolf/lede.git" master false; fi
-          if [ "${{ inputs.build-x-wrt-main }}" == "true" ]; then add x-wrt-main "https://github.com/x-wrt/x-wrt.git" master false; fi
-          if [ "${{ inputs.build-lienol-main }}" == "true" ]; then add lienol-main "https://github.com/Lienol/openwrt.git" 25.12 false; fi
+          if [ "${{ inputs.build-master }}" == "true" ]; then add immortalwrt-master "https://github.com/immortalwrt/immortalwrt.git" master "$FT_FIX"; fi
+          if [ -n "${{ inputs.release-tag }}" ]; then add "immortalwrt-${{ inputs.release-tag }}" "https://github.com/immortalwrt/immortalwrt.git" "${{ inputs.release-tag }}" false; fi
           if [ "$MATRIX" == "[]" ]; then
-            echo "::error::No source selected. Tick at least one build option."
+            echo "::error::No source selected. Tick build-master or specify a release-tag."
             exit 1
           fi
           echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"

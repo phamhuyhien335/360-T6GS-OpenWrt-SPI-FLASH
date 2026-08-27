@@ -74,21 +74,12 @@
 		partition@c0000 {
 			label = "Factory";
 			reg = <0x0c0000 0x040000>;
-			read-only;
 			nvmem-layout {
 				compatible = "fixed-layout";
 				#address-cells = <1>;
 				#size-cells = <1>;
 				eeprom_factory: eeprom@0 {
 					reg = <0x0 0xe00>;
-				};
-
-				macaddr_factory_3fff4: macaddr@3fff4 {
-					reg = <0x3fff4 0x6>;
-				};
-
-				macaddr_factory_3fffa: macaddr@3fffa {
-					reg = <0x3fffa 0x6>;
 				};
 			};
 		};
@@ -122,8 +113,6 @@
 
 &gmac0 {
 	status = "okay";
-	nvmem-cells = <&macaddr_factory_3fff4>;
-	nvmem-cell-names = "mac-address";
 };
 
 &switch0 {
@@ -144,8 +133,6 @@
 		port@3 {
 			status = "okay";
 			label = "wan";
-			nvmem-cells = <&macaddr_factory_3fffa>;
-			nvmem-cell-names = "mac-address";
 		};
 	};
 };
